@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Traveling Salesman Problem - Ant Colony Optimization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1 class="text-center text-2xl font-bold mt-10 mb-10">
+        Ant Colony Optimization - Traveling Salesman Problem
+    </h1>
+    <table class="min-w-full">
+        <thead>
+            <tr>
+                <th class="border border-gray-300 p-2">Individual</th>
+                <th class="border border-gray-300 p-2">Path</th>
+                <th class="border border-gray-300 p-2">Fitness (Distance)</th>
+            </tr>
+        </thead>
+        <tbody id="antTableBody"></tbody>
+    </table>
+
+    <div class="mt-5 text-center">
+        <p id="bestFitness" class="text-lg font-semibold">Best Fitness (Distance) :</p>
+        <p id="bestPath" class="text-lg font-semibold">Best Path :</p>
+    </div>
+
+    <div class="text-center mt-5">
+        <button id="startButton" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2">Start Optimization</button>
+    </div>
+
+    <div class="mt-5">
+        <canvas id="fitnessChart"></canvas>
+    </div>
+
+    <script type="module">
+        import { TSP } from "./ant.js";
+
+        const tableBody = document.getElementById("antTableBody");
+        const bestFitnessElement = document.getElementById("bestFitness");
+        const bestPathElement = document.getElementById("bestPath");
+        const startButton = document.getElementById("startButton");
+        const fitnessChartCtx = document.getElementById("fitnessChart").getContext("2d");
+
+        const cities = [
+            { name: 'Bandung', lat: -6.9175, lon: 107.6191 },
+            { name: 'Bogor', lat: -6.5950, lon: 106.7892 },
+            { name: 'Depok', lat: -6.3916, lon: 106.7942 },
+            { name: 'Bekasi', lat: -6.2344, lon: 106.9895 },
+            { name: 'Cirebon', lat: -6.7000, lon: 108.5500 },
+            { name: 'Tasikmalaya', lat: -7.3589, lon: 108.2218 }
+        ];
+
+        const tsp = new TSP(cities);
+
+        let iteration = 0;
+        let bestFitnessData = [];
+        let labels = [];
+
+        const fitnessChart = new Chart(fitnessChartCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Best Fitness (Distance)',
+                    data: bestFitnessData,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Iteration'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Distance'
+                        },
+                    }
+                }
+            }
+        });
+
+        function updateTable() {
+            tableBody.innerHTML = "";
+            tsp.ants.forEach((ant, index) => {
+                const pathWithReturn = [...ant.path, ant.path[0]]; // Tambahkan kota awal di akhir
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td class="border border-gray-300 p-2">${index + 1}</td>
+                    <td class="border border-gray-300 p-2">${pathWithReturn.join(" -> ")}</td>
+                    <td class="border border-gray-300 p-2">${ant.fitness.toFixed(2)} km</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            const bestPathWithReturn = [...tsp.bestPath, tsp.bestPath[0]]; // Tambahkan kota awal di akhir
+            bestFitnessElement.textContent = `Best Fitness (Distance) : ${tsp.bestFitness.toFixed(2)} km`;
+            bestPathElement.textContent = `Best Path : ${bestPathWithReturn.join(" -> ")}`;
+        }
+
+        function updateChart() {
+            labels.push(iteration);
+            bestFitnessData.push(tsp.bestFitness);
+            fitnessChart.update();
+        }
+
+        function runAntColonyOptimization() {
+            const maxIterations = 20;
+            const interval = setInterval(() => {
+                tsp.runIteration();
+                updateTable();
+                updateChart();
+                iteration++;
+
+                if (iteration >= maxIterations) {
+                    clearInterval(interval);
+                }
+            }, 500);
+        }
+
+        startButton.addEventListener('click', () => {
+            runAntColonyOptimization();
+        });
+    </script>
+</body>
+</html>
